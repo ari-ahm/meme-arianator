@@ -1,5 +1,6 @@
 import requests
 import os
+import pydub
 
 api = "https://tts.datacula.com/api/"
 
@@ -38,7 +39,7 @@ def getVoice(text : str, dest : str, modelName : str = "amir") :
         ConnectionRefusedError: if api returns a json instead of the requested wav
     """
     if (os.path.isfile(dest)) :
-        raise FileExistsError("get_voice output file already exists")
+        raise FileExistsError("getVoice output file already exists")
     
     ret = requests.get(api + "tts", params={"text": text.encode("utf-8"), "model_name": modelName.encode("utf-8")})
     if (not ret.ok) :
@@ -58,8 +59,29 @@ def getVoice(text : str, dest : str, modelName : str = "amir") :
         f.write(ret.content)
         f.close()
 
+def loudDistort(src : str, dest : str, dbMul : int = 50, destFormat : str = "wav") :
+    """Distorts src audio file by adding dbMul db to its volume
+
+    Args:
+        src (str): src file
+        dest (str): dest file(saved in destFormat file format)
+        dbMul (int, optional): how many dbs to add. Defaults to 50.
+        destFormat (str, optional): output file format. Defaults to "wav".
+
+    Raises:
+        FileExistsError: occurs when the output file is not the same as the input file and it already exists.
+    """
+    if (os.path.isfile(dest) and dest != src) :
+        raise FileExistsError("loudDistort output file already exists")
+    
+    audio : pydub.AudioSegment = pydub.AudioSegment.from_file(src)
+    audio += dbMul
+    audio.export(dest, destFormat)
+    
+
 def main() :
     getVoice("به به سلام حال شما چطوره", "mammad.wav")
+    loudDistort("mammad.wav", "mammad.wav")
 
 
 if __name__ == "__main__" :
