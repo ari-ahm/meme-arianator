@@ -1,8 +1,9 @@
 import requests
+import os
 
-domain = "https://tts.datacula.com/api/"
+api = "https://tts.datacula.com/api/"
 
-def check_alive() :
+def checkAlive() :
     """checks if the api is alive
     
     Returns :
@@ -11,7 +12,7 @@ def check_alive() :
         2 if the api is reporting that it's dead
     """
     try :
-        res = requests.get(domain)
+        res = requests.get(api)
         if (not res.ok) :
             return 1
         
@@ -22,10 +23,43 @@ def check_alive() :
     
     except :
         return 1
-        
+
+def getVoice(text : str, dest : str, modelName : str = "amir") :
+    """Get speech from text! and save it to path as a wav file
+
+    Args:
+        text (str): text to be spoken
+        dest (str): destination file(should not exist beforehand)
+        modelName (str, optional): api specific. Defaults to "amir".
+
+    Raises:
+        FileExistsError: if dest already exists
+        ConnectionError: if the api's response code is not ok
+        ConnectionRefusedError: if api returns a json instead of the requested wav
+    """
+    if (os.path.isfile(dest)) :
+        raise FileExistsError("get_voice output file already exists")
+    
+    ret = requests.get(api + "tts", params={"text": text.encode("utf-8"), "model_name": modelName.encode("utf-8")})
+    if (not ret.ok) :
+        raise ConnectionError(f"{api}tts response code not okay : <{ret.status_code}>")
+    
+    retIsJson = False
+    try :
+        ret.json()
+        retIsJson = True
+    except :
+        pass
+    
+    if (retIsJson) :
+        raise ConnectionRefusedError(f"{api}tts response not an audio file : {ret.text}")
+    
+    with open(dest, "wb") as f :
+        f.write(ret.content)
+        f.close()
 
 def main() :
-    print(check_alive())
+    getVoice("به به سلام حال شما چطوره", "mammad.wav")
 
 
 if __name__ == "__main__" :
