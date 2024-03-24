@@ -2,6 +2,7 @@ import requests
 import os
 import pydub
 from audiostretchy.stretch import stretch_audio
+from pydub.silence import detect_leading_silence
 
 api = "https://tts.datacula.com/api/"
 
@@ -79,8 +80,14 @@ def loudDistort(src : str, dest : str, dbMul : int = 50, destFormat : str = "wav
     audio += dbMul
     audio.export(dest, destFormat)
 
+def removeSilences(src : str, dest : str, destFormat : str = "wav") :
+    audio : pydub.AudioSegment = pydub.AudioSegment.from_file(src)
+    audio = audio[detect_leading_silence(audio):-detect_leading_silence(audio.reverse())]
+    audio.export(dest, destFormat)
+
 def main() :
-    getVoice("لایه بردار", "mammad.wav")
+    getVoice("آرین", "mammad.wav")
+    removeSilences("mammad.wav", "mammad.wav")
     stretch_audio("mammad.wav", "mammad.wav", 2)
     loudDistort("mammad.wav", "mammad.wav")
 
