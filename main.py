@@ -1,6 +1,7 @@
 import requests
 import os
 import pydub
+from audiostretchy.stretch import stretch_audio
 
 api = "https://tts.datacula.com/api/"
 
@@ -38,8 +39,8 @@ def getVoice(text : str, dest : str, modelName : str = "amir") :
         ConnectionError: if the api's response code is not ok
         ConnectionRefusedError: if api returns a json instead of the requested wav
     """
-    if (os.path.isfile(dest)) :
-        raise FileExistsError("getVoice output file already exists")
+    # if (os.path.isfile(dest)) :
+    #     raise FileExistsError("getVoice output file already exists")
     
     ret = requests.get(api + "tts", params={"text": text.encode("utf-8"), "model_name": modelName.encode("utf-8")})
     if (not ret.ok) :
@@ -71,16 +72,16 @@ def loudDistort(src : str, dest : str, dbMul : int = 50, destFormat : str = "wav
     Raises:
         FileExistsError: occurs when the output file is not the same as the input file and it already exists.
     """
-    if (os.path.isfile(dest) and dest != src) :
-        raise FileExistsError("loudDistort output file already exists")
+    # if (os.path.isfile(dest) and dest != src) :
+    #     raise FileExistsError("loudDistort output file already exists")
     
     audio : pydub.AudioSegment = pydub.AudioSegment.from_file(src)
     audio += dbMul
     audio.export(dest, destFormat)
-    
 
 def main() :
-    getVoice("به به سلام حال شما چطوره", "mammad.wav")
+    getVoice("لایه بردار", "mammad.wav")
+    stretch_audio("mammad.wav", "mammad.wav", 2)
     loudDistort("mammad.wav", "mammad.wav")
 
 
