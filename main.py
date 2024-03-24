@@ -2,7 +2,7 @@ import requests
 import os
 import pydub
 from audiostretchy.stretch import stretch_audio
-from pydub.silence import detect_leading_silence
+from pydub.silence import detect_leading_silence, split_on_silence
 from argparse import ArgumentParser
 
 api = "https://tts.datacula.com/api/"
@@ -93,6 +93,11 @@ def removeSilences(src : str, dest : str, destFormat : str = "wav") :
     audio = audio[detect_leading_silence(audio):-detect_leading_silence(audio.reverse())]
     audio.export(dest, destFormat)
 
+def aggrSilenceRm(src : str, dest : str, destFormat : str = "wav") :
+    audio : pydub.AudioSegment = pydub.AudioSegment.from_file(src)
+    audio = sum(split_on_silence(audio, 300, keep_silence=100))
+    audio.export(dest, destFormat)
+
 def main() :
     parser = ArgumentParser(prog="Arianator",
                             description="This tool helps you make kaka-sangi-dancing to LAYE BARDAR memes",
@@ -103,12 +108,15 @@ def main() :
                         dest="sp_mul", action="store", default=2, type=float)
     parser.add_argument("-G", "--gain", help="gain used to distort the audio. in db",
                         dest="gain", action="store", default=50, type=float)
+    parser.add_argument("--aggressive-silence-rm", help="remove silences aggressively", action="store_true", dest="silence_rm")
 
     args = parser.parse_args()
     
     getVoice(args.text, args.dest)
     removeSilences(args.dest, args.dest)
     stretch_audio(args.dest, args.dest, args.sp_mul)
+    if (args.silence_rm) :
+        aggrSilenceRm(args.dest, args.dest)
     loudDistort(args.dest, args.dest, args.gain)
 
 
