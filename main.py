@@ -81,6 +81,13 @@ def loudDistort(src : str, dest : str, dbMul : int = 50, destFormat : str = "wav
     audio.export(dest, destFormat)
 
 def removeSilences(src : str, dest : str, destFormat : str = "wav") :
+    """Remove leading and trailing silences
+
+    Args:
+        src (str): source file
+        dest (str): dest file
+        destFormat (str, optional): audio format to save dest. Defaults to "wav".
+    """
     audio : pydub.AudioSegment = pydub.AudioSegment.from_file(src)
     audio = audio[detect_leading_silence(audio):-detect_leading_silence(audio.reverse())]
     audio.export(dest, destFormat)
