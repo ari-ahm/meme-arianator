@@ -12,6 +12,7 @@ import arabic_reshaper
 from bidi.algorithm import get_display
 from PIL import ImageFont, ImageDraw, Image
 import ffmpeg
+import tempfile
 
 api = "https://tts.datacula.com/api/"
 
@@ -153,6 +154,11 @@ def repeat(src : str, dest : str, sleep : float, duration : float, destFormat : 
         ret = ret + audio + pydub.AudioSegment.silent(duration=sleep * 1000)
     ret.export(dest, destFormat)
 
+def mixAudio(src1 : str, src2 : str, dest : str, destFormat : str = "wav") :
+    audio1 : pydub.AudioSegment = pydub.AudioSegment.from_file(src1)
+    audio2 : pydub.AudioSegment = pydub.AudioSegment.from_file(src2)
+    audio1.overlay(audio2).export(dest, destFormat)
+
 def main() :
     parser = ArgumentParser(prog="Arianator",
                             description="This tool helps you make kaka-sangi-dancing to LAYE BARDAR memes",
@@ -174,7 +180,8 @@ def main() :
                         default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets/arial.ttf"))
     parser.add_argument("-S", "--font-size", help="font size",
                         dest="fontsize", action="store", default=128, type=int)
-    
+    parser.add_argument("-m", "--music", help="background music", dest="bgmusic", action="store",
+                        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets/main_music.mp3"))
 
     args = parser.parse_args()
     
@@ -185,10 +192,17 @@ def main() :
         aggrSilenceRm(args.adest, args.daest)
     loudDistort(args.adest, args.adest, args.gain)
     repeat(args.adest, args.adest, args.sleep, getVideoDuration(args.vid))
+    mixAudio(args.adest, args.bgmusic, args.adest)
     
-    shutil.copy(args.vid, args.vdest)
-    putText(args.vdest, args.vdest, args.text, args.font, args.fontsize, args.verbose)
+    tmp = tempfile.NamedTemporaryFile(suffix=os.path.splitext(args.vdest)[-1])
+    shutil.copy(args.vid, tmp.name)
+    putText(tmp.name, tmp.name, args.text, args.font, args.fontsize, args.verbose)
     
+    narr = ffmpeg.input(args.adest)
+    bgvideo = ffmpeg.input(tmp.name)
+    ffmpeg.concat(bgvideo, narr, v=1, a=1).output(args.vdest).run()
+    
+    tmp.close()
     
 
 if __name__ == "__main__" :
