@@ -177,7 +177,7 @@ def main() :
     parser.add_argument("-V", "--video", help="Input video to be used as background", dest="vid", action="store",
                         default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets/vid_low_q.mp4"))
     parser.add_argument("-f", "--font", help="Font path to be used", dest="font", action="store",
-                        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets/arial.ttf"))
+                        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets/bmashhad.ttf"))
     parser.add_argument("-S", "--font-size", help="font size",
                         dest="fontsize", action="store", default=128, type=int)
     parser.add_argument("-m", "--music", help="background music", dest="bgmusic", action="store",
