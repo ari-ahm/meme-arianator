@@ -1,6 +1,9 @@
 # Arianator
 
-This is a tool for making a specific type of memes that have been going viral recently(march of 2024) in Iranian meme communities using AI. it uses the tts.datacula.com api to get it's audio.
+This is a tool for making a specific type of memes that have been going viral recently(march of 2024) in Iranian meme communities using AI. it uses piper to get it's audio.
+
+# Setting up
+Clone the project and download fa_IR-gyro-medium.onnx and fa_IR-gyro-medium.onnx.json into assets folder from [here](https://huggingface.co/gyroing/Persian-Piper-Model-gyro/tree/main).
 
 # Howto
 ```
