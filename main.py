@@ -11,6 +11,7 @@ from tqdm import tqdm
 import arabic_reshaper
 from bidi.algorithm import get_display
 from PIL import ImageFont, ImageDraw, Image
+import ffmpeg
 
 api = "https://tts.datacula.com/api/"
 
@@ -137,6 +138,21 @@ def putText(src : str, dest : str, text : str, fontpath : str, fontsize : int, t
     
     out.release()
 
+def getVideoDuration(src : str) :
+    inp = cv2.VideoCapture(src)
+    ret = int(inp.get(cv2.CAP_PROP_FRAME_COUNT)) / inp.get(cv2.CAP_PROP_FPS)
+    inp.release()
+    return ret
+
+def repeat(src : str, dest : str, sleep : float, duration : float, destFormat : str = "wav") :
+    audio : pydub.AudioSegment = pydub.AudioSegment.from_file(src)
+    step = len(audio) / 1000 + sleep
+    rep = int(duration / step)
+    ret = pydub.AudioSegment.silent(duration=sleep * 1000)
+    for i in range(rep) :
+        ret = ret + audio + pydub.AudioSegment.silent(duration=sleep * 1000)
+    ret.export(dest, destFormat)
+
 def main() :
     parser = ArgumentParser(prog="Arianator",
                             description="This tool helps you make kaka-sangi-dancing to LAYE BARDAR memes",
@@ -150,12 +166,14 @@ def main() :
     parser.add_argument("-G", "--gain", help="gain used to distort the audio. in db",
                         dest="gain", action="store", default=50, type=float)
     parser.add_argument("--aggressive-silence-rm", help="remove silences aggressively", action="store_true", dest="silence_rm")
+    parser.add_argument("-s", "--sleep", help="number of seconds to wait between each repetition",
+                        dest="sleep", action="store", default=3, type=float)
     parser.add_argument("-V", "--video", help="Input video to be used as background", dest="vid", action="store",
                         default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets/vid_low_q.mp4"))
     parser.add_argument("-f", "--font", help="Font path to be used", dest="font", action="store",
                         default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets/arial.ttf"))
-    parser.add_argument("-s", "--font-size", help="font size",
-                        dest="fontisze", action="store", default=128, type=int)
+    parser.add_argument("-S", "--font-size", help="font size",
+                        dest="fontsize", action="store", default=128, type=int)
     
 
     args = parser.parse_args()
@@ -166,10 +184,12 @@ def main() :
     if (args.silence_rm) :
         aggrSilenceRm(args.adest, args.daest)
     loudDistort(args.adest, args.adest, args.gain)
+    repeat(args.adest, args.adest, args.sleep, getVideoDuration(args.vid))
     
     shutil.copy(args.vid, args.vdest)
     putText(args.vdest, args.vdest, args.text, args.font, args.fontsize, args.verbose)
-
+    
+    
 
 if __name__ == "__main__" :
     main()
