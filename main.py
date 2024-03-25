@@ -1,9 +1,16 @@
 import requests
 import os
+import shutil
+import cv2
+import numpy as np
 import pydub
 from audiostretchy.stretch import stretch_audio
 from pydub.silence import detect_leading_silence, split_on_silence
 from argparse import ArgumentParser
+from tqdm import tqdm
+import arabic_reshaper
+from bidi.algorithm import get_display
+from PIL import ImageFont, ImageDraw, Image
 
 api = "https://tts.datacula.com/api/"
 
@@ -98,26 +105,70 @@ def aggrSilenceRm(src : str, dest : str, destFormat : str = "wav") :
     audio = sum(split_on_silence(audio, 300, keep_silence=100))
     audio.export(dest, destFormat)
 
+def putText(src : str, dest : str, text : str, fontpath : str, fontsize : int, timer : bool = False) :
+    cv2Inp = cv2.VideoCapture(src)
+    inpBuffer = []
+    if (timer) :
+        print("Reading video input...")
+    success = True
+    for i in (tqdm(range(int(cv2Inp.get(cv2.CAP_PROP_FRAME_COUNT)))) if timer else range(int(cv2Inp.get(cv2.CAP_PROP_FRAME_COUNT)))) :
+        success, img = cv2Inp.read()
+        if (not success) :
+            break
+        inpBuffer.append(img)
+    
+    videoDimension = (int(cv2Inp.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cv2Inp.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    out = cv2.VideoWriter(dest, int(cv2Inp.get(cv2.CAP_PROP_FOURCC)), cv2Inp.get(cv2.CAP_PROP_FPS), videoDimension)
+    cv2Inp.release()
+    
+    if (timer) :
+        print("Processing video output...")
+    # text = arabic_reshaper.reshape(text)
+    text = text[::-1]
+    bidi_text = get_display(text)
+    font = ImageFont.truetype(fontpath, fontsize)
+    for i in (tqdm(inpBuffer) if timer else inpBuffer) :
+        img_pil = Image.fromarray(i)
+        draw = ImageDraw.Draw(img_pil)
+        _, _, w, h = draw.textbbox((0, 0), bidi_text, font = font)
+        draw.text(((videoDimension[0] - w) // 2, videoDimension[1] // 15), bidi_text, font = font)
+        i = np.array(img_pil)
+        out.write(i)
+    
+    out.release()
+
 def main() :
     parser = ArgumentParser(prog="Arianator",
                             description="This tool helps you make kaka-sangi-dancing to LAYE BARDAR memes",
                             epilog="Made by Arian")
     parser.add_argument("text", help="narration to be used in the video")
-    parser.add_argument("-o", "--output", help="destination file", dest="dest", action="store", default="mammad.wav")
+    parser.add_argument("-v", "--verbose", help="Verbose output", action="store_true", dest="verbose")
+    parser.add_argument("-o", "--audio-output", help="destination audio file", dest="adest", action="store", default="mammad.wav")
+    parser.add_argument("-O", "--video-output", help="destination video file", dest="vdest", action="store", default="mammad.mp4")
     parser.add_argument("--speed-mul", help="speed multiplier which controlls how slow the audio is going to be",
                         dest="sp_mul", action="store", default=2, type=float)
     parser.add_argument("-G", "--gain", help="gain used to distort the audio. in db",
                         dest="gain", action="store", default=50, type=float)
     parser.add_argument("--aggressive-silence-rm", help="remove silences aggressively", action="store_true", dest="silence_rm")
+    parser.add_argument("-V", "--video", help="Input video to be used as background", dest="vid", action="store",
+                        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets/vid_low_q.mp4"))
+    parser.add_argument("-f", "--font", help="Font path to be used", dest="font", action="store",
+                        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets/arial.ttf"))
+    parser.add_argument("-s", "--font-size", help="font size",
+                        dest="fontisze", action="store", default=128, type=int)
+    
 
     args = parser.parse_args()
     
-    getVoice(args.text, args.dest)
-    removeSilences(args.dest, args.dest)
-    stretch_audio(args.dest, args.dest, args.sp_mul)
+    getVoice(args.text, args.adest)
+    removeSilences(args.adest, args.adest)
+    stretch_audio(args.adest, args.adest, args.sp_mul)
     if (args.silence_rm) :
-        aggrSilenceRm(args.dest, args.dest)
-    loudDistort(args.dest, args.dest, args.gain)
+        aggrSilenceRm(args.adest, args.daest)
+    loudDistort(args.adest, args.adest, args.gain)
+    
+    shutil.copy(args.vid, args.vdest)
+    putText(args.vdest, args.vdest, args.text, args.font, args.fontsize, args.verbose)
 
 
 if __name__ == "__main__" :
